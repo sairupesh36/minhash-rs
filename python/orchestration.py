@@ -13,6 +13,21 @@ import ray
 
 VERBOSE = True
 
+# Provide backward compatibility for configs that use
+# single-node field names like `output_dir` instead of
+# the distributed `local_output` and omit the remote
+# directory settings.
+def canonicalize_config(config_dict):
+    if 'local_output' not in config_dict and 'output_dir' in config_dict:
+        config_dict['local_output'] = config_dict['output_dir']
+    if 'remote_input' not in config_dict:
+        config_dict['remote_input'] = config_dict.get('local_input')
+    if 'remote_working_dir' not in config_dict:
+        config_dict['remote_working_dir'] = config_dict.get('working_dir')
+    if 'remote_output' not in config_dict:
+        config_dict['remote_output'] = config_dict.get('local_output')
+    return config_dict
+
 # ===============================================================
 # =                     MISC UTILITIES                          =
 # ===============================================================
@@ -59,9 +74,12 @@ def sb_run(argstring):
 # ===============================================================
 
 def shared_file_setup(config_dict):
-	# Make local directories
-	for k in ['local_input', 'working_dir', 'local_output']:
-		os.makedirs(config_dict[k], exist_ok=True)
+        # Normalize keys from various example configs
+        config_dict = canonicalize_config(config_dict)
+
+        # Make local directories
+        for k in ['local_input', 'working_dir', 'local_output']:
+                os.makedirs(config_dict[k], exist_ok=True)
 
 	# And download the config file
 	config_file = get_config_name(config_dict)	
@@ -266,11 +284,12 @@ def ray_uf_size_prune(config_dict, path_chunk_id=0, num_path_chunks=1):
 
 def main(remote_config):
 
-	# Init ray and do setup 	
-	ray.init(address="auto")
-	config_dict = yaml.safe_load(open(remote_config, 'rb').read())
-	shared_file_setup(config_dict)
-	call_build_file_map(config_dict)
+        # Init ray and do setup
+        ray.init(address="auto")
+        config_dict = yaml.safe_load(open(remote_config, 'rb').read())
+        config_dict = canonicalize_config(config_dict)
+        shared_file_setup(config_dict)
+        call_build_file_map(config_dict)
 
 	# Do all steps
 	num_path_chunks = config_dict['num_path_chunks']
