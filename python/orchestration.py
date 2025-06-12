@@ -81,10 +81,10 @@ def shared_file_setup(config_dict):
         for k in ['local_input', 'working_dir', 'local_output']:
                 os.makedirs(config_dict[k], exist_ok=True)
 
-	# And download the config file
-	config_file = get_config_name(config_dict)	
+        # And download the config file
+        config_file = get_config_name(config_dict)
 
-	if not os.path.exists(config_file):
+        if not os.path.exists(config_file):
 		with open(config_file, 'w') as f:
 			yaml.dump(config_dict, f)
 
