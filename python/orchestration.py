@@ -310,7 +310,7 @@ def main(remote_config):
 
         # Do all steps
         num_path_chunks = config_dict['num_path_chunks']
-        hash_futures = [ray_hash_only.remote(config_dict, path_chunk=i, num_path_chunks=num_path_chunks)
+        hash_futures = [ray_hash_only.remote(config_dict, part_id=i, num_parts=num_path_chunks)
 					for i in range(num_path_chunks)]
         ray.get(hash_futures)
 
@@ -318,7 +318,7 @@ def main(remote_config):
 
         ray.get(ray_build_uf.remote(ray_build_uf, num_path_chunks))
 
-        prune_futures = [ray_uf_size_prune.remote(config_dict, path_chunk=i, num_path_chunks=num_path_chunks)
+        prune_futures = [ray_uf_size_prune.remote(config_dict, path_chunk_id=i, num_path_chunks=num_path_chunks)
 					 for i in range(num_path_chunks)]
         ray.get(prune_futures)
 
