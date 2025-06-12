@@ -94,7 +94,31 @@ cargo run --release -- uf-size-prune --config <path/to/config> #NOTE: use comman
 
 ## Multinode Usage
 
-Multinode usage is more complicated and should still be stress-tested. Let's call this a WIP for now.
+Running on a cluster requires that every node can see the same
+directories (for example via NFS).  The YAML config should reference
+those shared paths and include `num_path_chunks`, which controls how
+many parallel tasks Ray will launch.
+
+1. Start Ray on the head node:
+
+   ```bash
+   ray start --head --port=6379
+   ```
+
+2. Join each worker to the cluster:
+
+   ```bash
+   ray start --address="<head-ip>:6379"
+   ```
+
+3. Kick off the deduplication run from the head node:
+
+   ```bash
+   python -m python.ray_dedup_local --config /path/to/config.yaml
+   ```
+
+Ray will then orchestrate all dedup phases across the cluster while
+reading and writing to the shared directories.
 
 
 ## Release Notes
