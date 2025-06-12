@@ -38,9 +38,7 @@ def list_s3_files(bucket_name, prefix, contains=None):
     return file_list
 
 
-def clickfree_build_file_map(config: str):
-    config_data = yaml.safe_load(open(config, 'r'))
-
+def clickfree_build_file_map(config_data: dict):
     working_dir = config_data['working_dir']
     os.makedirs(working_dir, exist_ok=True)
 

@@ -31,13 +31,9 @@ def canonicalize_config(config_dict):
 # ===============================================================
 # =                     MISC UTILITIES                          =
 # ===============================================================
-def get_config_name(config_dict):
-    # Just a way to recover the name of where the LOCAL copy of the config file lives
-    # (from the actual contents of the config file)
-    return os.path.join(os.path.dirname(config_dict['working_dir']), 'config.yaml')
 def download_jsonl_parts(config_dict, file_map_json, part_id, num_parts):
     # Uses fancy s5cmd commands to download 1/num_parts'th of the dataset to disk
-    config_file = get_config_name(config_dict)
+    config_file = os.path.join(os.path.dirname(config_dict['working_dir']), 'config.yaml') # Replaced get_config_name
     # Download files if they don't exist
     chunk_stems = spg.get_path_chunk_stems(file_map_json, part_id, num_parts)
     local_inputs = [os.path.join(config_dict['local_input'], stem) for stem in chunk_stems]
@@ -78,7 +74,7 @@ def shared_file_setup(config_dict):
                 os.makedirs(config_dict[k], exist_ok=True)
 
         # And download the config file
-        config_file = get_config_name(config_dict)
+        config_file = os.path.join(os.path.dirname(config_dict['working_dir']), 'config.yaml') # Replaced get_config_name
 
         if not os.path.exists(config_file):
             with open(config_file, 'w') as f:
@@ -130,6 +126,10 @@ def upload_and_clean(config_dict, subname):
 # ===============================================================
 
 
+def is_s3_path(path_string):
+    return isinstance(path_string, str) and path_string.startswith('s3://')
+
+
 def call_build_file_map(config_dict, local_sys=True):
     """ Makes the rust call to build the filemap.
         This can be done on the head node.
@@ -140,12 +140,35 @@ def call_build_file_map(config_dict, local_sys=True):
     if not local_sys:
         shared_file_setup(config_dict)
 
-    config_file = get_config_name(config_dict)
-    fmb.clickfree_build_file_map(config_file)
-    local_file_map_data = open(os.path.join(config_dict['working_dir'], 'filemap.json.gz'), 'rb').read()
-    remote_file_map = os.path.join(config_dict['remote_working_dir'], 'filemap.json.gz')
-    with open(remote_file_map, 'wb') as f:
-        f.write(local_file_map_data)
+    is_local_scenario = local_sys and not is_s3_path(config_dict.get('remote_input', ''))
+
+    if is_local_scenario:
+        local_input_path = config_dict.get('local_input')
+        if not local_input_path or not os.path.isdir(local_input_path):
+            raise ValueError(f"local_input path {local_input_path} is invalid or not a directory for local run.")
+
+        files_to_map = []
+        for fname in os.listdir(local_input_path):
+            if fname.endswith('.jsonl'): # Assuming .jsonl, adjust if needed
+                files_to_map.append(os.path.join(local_input_path, fname))
+
+        file_map_contents = {
+            'local_input': local_input_path,
+            'remote_input': config_dict.get('remote_input'), # Keep original remote_input if any, or could be local_input_path
+            'indices': {os.path.relpath(p, local_input_path): i for i, p in enumerate(files_to_map)}
+        }
+
+        file_map_path = os.path.join(config_dict['working_dir'], 'filemap.json.gz')
+        with open(file_map_path, 'wb') as f:
+            f.write(json.dumps(file_map_contents).encode('utf-8'))
+    else:
+        fmb.clickfree_build_file_map(config_dict)
+
+    if is_s3_path(config_dict.get('remote_working_dir', '')):
+        local_file_map_data = open(os.path.join(config_dict['working_dir'], 'filemap.json.gz'), 'rb').read()
+        remote_file_map = os.path.join(config_dict['remote_working_dir'], 'filemap.json.gz')
+        with open(remote_file_map, 'wb') as f:
+            f.write(local_file_map_data)
 
 
 def call_hash_only(config_dict, part_id=0, num_parts=1):
@@ -155,7 +178,7 @@ def call_hash_only(config_dict, part_id=0, num_parts=1):
 
     # Setup stuff
     shared_file_setup(config_dict)
-    config_file = get_config_name(config_dict)
+    config_file = os.path.join(os.path.dirname(config_dict['working_dir']), 'config.yaml') # Replaced get_config_name
     file_map_json = download_file_map(config_dict)
 
     # Download the jsonl data
@@ -181,7 +204,7 @@ def call_gather_edges(config_dict):
 
     # setup
     shared_file_setup(config_dict)
-    config_file = get_config_name(config_dict)
+    config_file = os.path.join(os.path.dirname(config_dict['working_dir']), 'config.yaml') # Replaced get_config_name
     file_map_json = download_file_map(config_dict)
 
     # Download all signatures
@@ -209,7 +232,7 @@ def call_build_uf(config_dict, num_parts=1):
 
     # Setup
     shared_file_setup(config_dict)
-    config_file = get_config_name(config_dict)
+    config_file = os.path.join(os.path.dirname(config_dict['working_dir']), 'config.yaml') # Replaced get_config_name
     file_map_json = download_file_map(config_dict)
 
     # Download all edges
@@ -236,7 +259,7 @@ def call_uf_size_prune(config_dict, path_chunk_id=0, num_path_chunks=1):
     """
 
     shared_file_setup(config_dict)
-    config_file = get_config_name(config_dict)
+    config_file = os.path.join(os.path.dirname(config_dict['working_dir']), 'config.yaml') # Replaced get_config_name
     file_map_json = download_file_map(config_dict)
 
 
