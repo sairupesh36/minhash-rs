@@ -249,8 +249,12 @@ def call_uf_size_prune(config_dict, path_chunk_id=0, num_path_chunks=1):
 
 
 @ray.remote
-ray_uf_size_prune(config_dict, path_chunk_id=path_chunk_id, num_path_chunks=num_path_chunks):
-	call_uf_size_prune(config_dict, path_chunk_id=path_chunk_id, num_path_chunks=num_path_chunks)
+def ray_uf_size_prune(config_dict, path_chunk_id=0, num_path_chunks=1):
+        call_uf_size_prune(
+            config_dict,
+            path_chunk_id=path_chunk_id,
+            num_path_chunks=num_path_chunks,
+        )
 
 
 

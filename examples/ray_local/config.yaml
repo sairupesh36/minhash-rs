@@ -1,0 +1,21 @@
+name: local-ray-dedup
+# MinHash parameters
+num_bands: 14
+band_size: 8
+ngram_size: 5
+tokenizer_str: uniseg
+num_sig_chunks: 2
+num_docs: 1000
+num_path_chunks: 1
+max_lines_per_path: 100
+content_key: text
+
+# Local directories
+local_input: /path/to/input
+working_dir: /path/to/working
+output_dir: /path/to/output
+
+# Remote directories (same as local for on-premise use)
+remote_input: /path/to/input
+remote_working_dir: /path/to/working
+remote_output: /path/to/output
